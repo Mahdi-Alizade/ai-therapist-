@@ -3,7 +3,7 @@ from typing import Optional
 
 CRISIS_PATTERNS = [
     r"\b(suicide|kill myself|want to die|end my life|self-harm|hurt myself)\b",
-    r"(خودکشی|مرگ|می‌خوام بمیرم|تمومش کنم|آسیب به خود|تیغ زدن)",
+    r"(خودکشی|خودزنی|بمیرم|آسیب\s*(?:به\s*خود|به\s*خودم|بزنم|برسانم)|تمومش\s*کنم|تیغ\s*زدن)",
 ]
 
 EMERGENCY_RESPONSE = (
@@ -19,10 +19,16 @@ EMERGENCY_RESPONSE = (
 def evaluate_crisis_risk(user_message: str) -> Optional[str]:
     """
     Evaluates input text for explicit crisis indicators.
+    Normalizes spaces and Persian half-spaces (ZWNJ) before regex evaluation.
     Returns standard emergency instructions if triggered, otherwise None.
     """
-    text = user_message.lower()
+    if not user_message:
+        return None
+
+    # Replace Persian half-space (ZWNJ) and normalize spaces
+    normalized_text = user_message.replace("\u200c", " ").lower()
+
     for pattern in CRISIS_PATTERNS:
-        if re.search(pattern, text, flags=re.IGNORECASE):
+        if re.search(pattern, normalized_text, flags=re.IGNORECASE):
             return EMERGENCY_RESPONSE
     return None
