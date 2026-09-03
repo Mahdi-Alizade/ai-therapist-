@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List, Dict
+from typing import AsyncGenerator, List, Dict, Optional
 from google import genai
 from google.genai import types
 from app.core.config import settings
@@ -8,8 +8,18 @@ from app.services.safety import evaluate_crisis_risk
 
 class AIService:
     def __init__(self) -> None:
-        self.client = genai.Client(api_key=settings.AI_API_KEY)
-        self.model_name = settings.AI_MODEL_NAME
+        self.model_name: str = settings.AI_MODEL_NAME
+        self._client: Optional[genai.Client] = None
+
+    @property
+    def client(self) -> genai.Client:
+        """Lazily initialize Google GenAI client when first needed."""
+        if self._client is None:
+            api_key = settings.AI_API_KEY
+            if not api_key:
+                raise ValueError("AI_API_KEY is not set. Please configure it in .env.")
+            self._client = genai.Client(api_key=api_key)
+        return self._client
 
     async def stream_chat_response(
         self,
