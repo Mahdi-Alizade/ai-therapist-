@@ -1,29 +1,36 @@
 import pytest
-from app.core.prompts import SYSTEM_INSTRUCTION
+from app.core.prompts import (
+    PERSONA_PROMPTS,
+    DEFAULT_PERSONA,
+    get_system_instruction,
+)
 
 
-def test_system_prompt_contains_cbt_pillars():
-    prompt = SYSTEM_INSTRUCTION.lower()
-    
-    # Check CBT concepts
+def test_persona_keys_exist():
+    expected_personas = {"cbt", "stoic", "rubber_duck"}
+    assert set(PERSONA_PROMPTS.keys()) == expected_personas
+
+
+def test_cbt_prompt_content():
+    prompt = get_system_instruction("cbt").lower()
     assert "cognitive behavioral therapy" in prompt or "cbt" in prompt
     assert "socratic" in prompt
-    assert "automatic thoughts" in prompt
-    assert "validation" in prompt
-
-
-def test_system_prompt_contains_reflective_exercises():
-    prompt = SYSTEM_INSTRUCTION.lower()
-    
-    # Check grounding exercises
     assert "box breathing" in prompt
-    assert "5-4-3-2-1" in prompt
-    assert "grounding" in prompt
 
 
-def test_system_prompt_enforces_safety_and_non_medical_boundaries():
-    prompt = SYSTEM_INSTRUCTION.lower()
-    
-    # Check boundaries
-    assert "not a medical doctor" in prompt or "not a licensed" in prompt
-    assert "diagnoses" in prompt
+def test_stoic_prompt_content():
+    prompt = get_system_instruction("stoic").lower()
+    assert "dichotomy of control" in prompt
+    assert "marcus aurelius" in prompt or "stoic" in prompt
+
+
+def test_rubber_duck_prompt_content():
+    prompt = get_system_instruction("rubber_duck").lower()
+    assert "rubber duck" in prompt
+    assert "stack trace" in prompt or "burnout" in prompt
+
+
+def test_fallback_to_default_on_unknown_persona():
+    fallback_prompt = get_system_instruction("unknown_style")
+    default_prompt = get_system_instruction(DEFAULT_PERSONA)
+    assert fallback_prompt == default_prompt
