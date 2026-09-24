@@ -2,7 +2,7 @@ from typing import AsyncGenerator, List, Dict, Optional
 from google import genai
 from google.genai import types
 from app.core.config import settings
-from app.core.prompts import SYSTEM_INSTRUCTION
+from app.core.prompts import get_system_instruction, DEFAULT_PERSONA
 from app.services.safety import evaluate_crisis_risk
 
 
@@ -23,11 +23,12 @@ class AIService:
 
     async def stream_chat_response(
         self,
-        messages: List[Dict[str, str]]
+        messages: List[Dict[str, str]],
+        persona: str = DEFAULT_PERSONA
     ) -> AsyncGenerator[str, None]:
         """
-        Takes conversation history, checks crisis guardrails on the latest message,
-        and streams the response from the AI model.
+        Takes conversation history and selected persona, checks crisis guardrails
+        on the latest message, and streams the response from the AI model.
         """
         if not messages:
             yield "No message provided."
@@ -49,8 +50,10 @@ class AIService:
                 )
             )
 
+        system_instruction_text = get_system_instruction(persona)
+
         config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
+            system_instruction=system_instruction_text,
             temperature=0.7,
             max_output_tokens=800,
         )
