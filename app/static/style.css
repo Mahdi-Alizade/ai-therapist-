@@ -111,23 +111,6 @@ body {
   color: var(--text-pure);
 }
 
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.75rem;
-}
-
-.nav-actions .login-link {
-  text-decoration: none;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  transition: color 0.2s ease;
-}
-
-.nav-actions .login-link:hover {
-  color: var(--text-pure);
-}
-
 .btn-pill-cyan {
   background: linear-gradient(135deg, #38bdf8 0%, #2dd4bf 100%);
   color: #030712;
@@ -154,7 +137,7 @@ body {
 .hero-container {
   max-width: 1300px;
   margin: 0 auto;
-  padding: 2.5rem 2rem 5rem;
+  padding: 2.5rem 2rem 4rem;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
@@ -191,7 +174,7 @@ body {
   font-size: 0.95rem;
 }
 
-/* Right Side: Glowing Human Silhouette & Synapses */
+/* Hero Visual */
 .hero-visual {
   position: relative;
   width: 100%;
@@ -231,7 +214,7 @@ body {
 /* Interactive Embedded AI Chat Console */
 .chat-section {
   max-width: 900px;
-  margin: 0 auto 6rem;
+  margin: 0 auto 5rem;
   padding: 0 1.5rem;
   position: relative;
   z-index: 20;
@@ -246,23 +229,25 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 460px;
+  height: 520px;
 }
 
 .chat-card-header {
-  padding: 1rem 1.5rem;
+  padding: 0.9rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(13, 19, 33, 0.5);
+  background: rgba(13, 19, 33, 0.6);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .session-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
@@ -278,6 +263,39 @@ body {
 @keyframes pulseAnim {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+/* Persona Selector Pill Buttons */
+.persona-selector {
+  display: flex;
+  gap: 6px;
+  background: rgba(5, 7, 13, 0.7);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.persona-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.persona-btn:hover {
+  color: var(--text-pure);
+}
+
+.persona-btn.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(45, 212, 191, 0.25));
+  color: var(--cyan-accent);
+  border: 1px solid rgba(45, 212, 191, 0.4);
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15);
 }
 
 .chat-messages {
@@ -437,7 +455,6 @@ footer {
   color: var(--text-pure);
 }
 
-/* Responsive */
 @media (max-width: 900px) {
   .hero-container {
     grid-template-columns: 1fr;
