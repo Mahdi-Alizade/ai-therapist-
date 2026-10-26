@@ -24,3 +24,14 @@ class ChatRequest(BaseModel):
 class SessionHistoryResponse(BaseModel):
     session_id: str
     messages: List[ChatMessage]
+
+
+class SentimentAnalysisRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000, description="Input text to evaluate emotional metrics")
+
+
+class SentimentAnalysisResponse(BaseModel):
+    stress_score: float = Field(..., ge=0.0, le=1.0, description="Normalized stress and overwhelm index")
+    valence: Literal["positive", "distressed", "neutral"] = Field(..., description="Overall emotional direction")
+    detected_cues: List[str] = Field(default_factory=list, description="Emotional or cognitive markers identified")
+    cognitive_rigidity: bool = Field(..., description="Flags presence of extreme or all-or-nothing terms")
