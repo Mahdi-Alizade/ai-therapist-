@@ -37,3 +37,16 @@ async def test_get_session_history_flow():
         assert data["session_id"] == test_session
         assert len(data["messages"]) == 1
         assert data["messages"][0]["content"] == "Testing API history."
+
+
+@pytest.mark.asyncio
+async def test_sentiment_analysis_api_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload = {"text": "I feel anxious and overwhelmed by this situation."}
+        response = await client.post("/api/sentiment/analyze", json=payload)
+        assert response.status_code == 200
+        result = response.json()
+        assert result["valence"] == "distressed"
+        assert result["stress_score"] > 0.0
+        assert "anxious" in result["detected_cues"] or "overwhelmed" in result["detected_cues"]
