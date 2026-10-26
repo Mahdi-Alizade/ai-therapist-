@@ -1,8 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from app.api.schemas import ChatRequest, SessionHistoryResponse, ChatMessage
+from app.api.schemas import (
+    ChatRequest,
+    SessionHistoryResponse,
+    ChatMessage,
+    SentimentAnalysisRequest,
+    SentimentAnalysisResponse
+)
 from app.services.ai_service import AIService
 from app.services.database import save_session, save_message, load_session_messages
+from app.services.sentiment import analyze_text_sentiment
 
 router = APIRouter(prefix="/api", tags=["Chat"])
 ai_service = AIService()
@@ -51,3 +58,18 @@ async def get_chat_history_endpoint(session_id: str):
         for item in raw_messages
     ]
     return SessionHistoryResponse(session_id=session_id, messages=formatted_messages)
+
+
+@router.post("/sentiment/analyze", response_model=SentimentAnalysisResponse)
+async def analyze_sentiment_endpoint(payload: SentimentAnalysisRequest):
+    """
+    Analyzes emotional valence, stress index, and cognitive rigidity of the provided text.
+    """
+    analysis_result = analyze_text_sentiment(payload.text)
+    
+    return SentimentAnalysisResponse(
+        stress_score=analysis_result["stress_score"],
+        valence=analysis_result["valence"],
+        detected_cues=analysis_result["detected_cues"],
+        cognitive_rigidity=analysis_result["cognitive_rigidity"]
+    )
