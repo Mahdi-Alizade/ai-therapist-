@@ -1,6 +1,6 @@
 import os
 import aiosqlite
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
 DATABASE_FILENAME = "therapist_sessions.db"
@@ -45,7 +45,7 @@ async def init_database() -> None:
 async def save_session(session_id: str, persona: str) -> None:
     conn = await get_connection()
     try:
-        now_str = datetime.utcnow().isoformat()
+        now_str = datetime.now(timezone.utc).isoformat()
         insert_query = """
         INSERT OR IGNORE INTO chat_sessions (session_id, persona, created_at)
         VALUES (?, ?, ?);
@@ -59,7 +59,7 @@ async def save_session(session_id: str, persona: str) -> None:
 async def save_message(session_id: str, role: str, content: str) -> None:
     conn = await get_connection()
     try:
-        timestamp_now = datetime.utcnow().isoformat()
+        timestamp_now = datetime.now(timezone.utc).isoformat()
         insert_msg_query = """
         INSERT INTO chat_messages (session_id, role, content, created_at)
         VALUES (?, ?, ?, ?);
