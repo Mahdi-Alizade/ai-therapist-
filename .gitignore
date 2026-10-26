@@ -1,34 +1,63 @@
-# Python virtual environment
-venv/
-.venv/
-env/
-ENV/
-
-# Python bytecode and cache
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# Environment variables, secrets, and credentials
+# C extensions & build
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
 .env
 .env.local
 .env.*.local
 *.env
+secrets.json
 
-# Testing and coverage artifacts
+# Local Databases & Storage Artifacts
+*.db
+*.sqlite
+*.sqlite3
+data/
+storage/
+
+# IDE & Editor metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing and coverage
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Operating System and IDE files
-.vscode/
-.idea/
+# Operating System Files
+.DS_Store
 Thumbs.db
 Desktop.ini
-.DS_Store
-
-# Logs and local databases
-*.log
-*.sqlite3
-*.db
