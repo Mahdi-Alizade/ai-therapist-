@@ -16,3 +16,11 @@ class ChatRequest(BaseModel):
     persona: Optional[Literal["cbt", "stoic", "rubber_duck"]] = Field(
         default="cbt", description="Therapist persona style: cbt, stoic, or rubber_duck"
     )
+    session_id: Optional[str] = Field(
+        default=None, description="Unique session identifier for database persistence"
+    )
+
+
+class SessionHistoryResponse(BaseModel):
+    session_id: str
+    messages: List[ChatMessage]
