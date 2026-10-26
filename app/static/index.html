@@ -60,7 +60,7 @@
                         </linearGradient>
                         <radialGradient id="headGlow" cx="200" cy="150" r="120" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
-                            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+                            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.4" />
                         </radialGradient>
                     </defs>
 
@@ -88,13 +88,14 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with Persistence -->
+    <!-- Embedded Live Streaming Chat Section with Sentiment Tracking -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
                 <div class="session-badge">
                     <span class="pulse-dot"></span>
-                    <span id="sessionStatusText">CBT Reflective Mode • Persistent Session</span>
+                    <span id="sessionStatusText">CBT Reflective Mode</span>
+                    <span class="mood-pill" id="moodIndicator">Mood: Calibrated</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
@@ -163,13 +164,14 @@
         <div>© 2026 MindWell AI</div>
     </footer>
 
-    <!-- Chat Streaming Logic with SQLite Session Persistence -->
+    <!-- Chat Streaming Logic with Live Sentiment & Persistence -->
     <script>
         const chatBox = document.getElementById("chatBox");
         const userInput = document.getElementById("userInput");
         const chatForm = document.getElementById("chatForm");
         const sendBtn = document.getElementById("sendBtn");
         const sessionStatusText = document.getElementById("sessionStatusText");
+        const moodIndicator = document.getElementById("moodIndicator");
         const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
         const newSessionBtn = document.getElementById("newSessionBtn");
 
@@ -206,6 +208,37 @@
             return div;
         }
 
+        function updateMoodUI(sentimentData) {
+            if (!sentimentData) return;
+            const valence = sentimentData.valence;
+            const score = Math.round(sentimentData.stress_score * 100);
+
+            moodIndicator.className = "mood-pill " + valence;
+            if (valence === "distressed") {
+                moodIndicator.textContent = `High Stress (${score}%)`;
+            } else if (valence === "positive") {
+                moodIndicator.textContent = `Reflective Relief`;
+            } else {
+                moodIndicator.textContent = `Neutral Focus`;
+            }
+        }
+
+        async function analyzeMessageSentiment(text) {
+            try {
+                const res = await fetch("/api/sentiment/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    updateMoodUI(data);
+                }
+            } catch (e) {
+                console.warn("Sentiment check skipped due to network.");
+            }
+        }
+
         async function restoreSessionHistory() {
             chatBox.innerHTML = "";
             try {
@@ -225,7 +258,6 @@
                 console.warn("Could not fetch remote session history, initializing greeting.");
             }
 
-            // Fallback greeting if session is fresh or empty
             const defaultGreeting = personaGreetings[currentPersona];
             sessionHistory = [{ role: "model", content: defaultGreeting }];
             appendBubble("model", defaultGreeting);
@@ -234,6 +266,8 @@
         newSessionBtn.addEventListener("click", () => {
             localStorage.removeItem("mindwell_session_id");
             currentSessionId = getOrCreateSessionId();
+            moodIndicator.className = "mood-pill";
+            moodIndicator.textContent = "Mood: Calibrated";
             restoreSessionHistory();
         });
 
@@ -250,11 +284,12 @@
                     stoic: "Stoic Philosopher Mode",
                     rubber_duck: "Rubber Duck Debugger"
                 };
-                sessionStatusText.textContent = `${personaNames[currentPersona]} • Persistent Session`;
+                sessionStatusText.textContent = personaNames[currentPersona];
 
-                // Fresh start on persona switch
                 localStorage.removeItem("mindwell_session_id");
                 currentSessionId = getOrCreateSessionId();
+                moodIndicator.className = "mood-pill";
+                moodIndicator.textContent = "Mood: Calibrated";
                 restoreSessionHistory();
             });
         });
@@ -268,6 +303,9 @@
             sessionHistory.push({ role: "user", content: message });
             userInput.value = "";
             sendBtn.disabled = true;
+
+            // Trigger parallel sentiment analysis
+            analyzeMessageSentiment(message);
 
             const responseBubble = appendBubble("model", "...");
 
@@ -306,7 +344,6 @@
             }
         });
 
-        // Initial restore when page loads
         restoreSessionHistory();
     </script>
 </body>
