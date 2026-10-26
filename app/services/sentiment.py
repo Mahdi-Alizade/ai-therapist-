@@ -1,7 +1,6 @@
 import re
 from typing import Dict, List, Any
 
-# Emotional and Cognitive Lexicon Markers
 POSITIVE_MARKERS = {
     "hope", "better", "calm", "relief", "peace", "clear", "grateful",
     "understanding", "progress", "relaxed", "happy", "stable",
@@ -14,28 +13,29 @@ DISTRESS_MARKERS = {
     "اضطراب", "استرس", "وحشت", "درمانده", "غمگین", "خسته", "فرسوده", "عصبانی", "ترس", "تنها"
 }
 
-COGNITIVE_RIGIDITY_MARKERS = {
-    "always", "never", "must", "should", "ruined", "impossible", "failed",
-    "همیشه", "هرگز", "باید", "حتما", "نابود", "غیرممکن", "شکست"
-}
+COGNITIVE_RIGIDITY_PATTERNS = [
+    r"\b(always|never|must|should|ruined|impossible|failed)\b",
+    r"(همیشه|هرگز|باید|حتما|نابود|غیر\s*ممکن(?:ه)?|شکست)"
+]
 
 
 def analyze_text_sentiment(text: str) -> Dict[str, Any]:
     """
     Evaluates emotional valence, stress index, and cognitive rigidity cues
-    from the user's conversational text.
+    from the user's conversational text with flexible pattern matching.
     """
-    clean_text = text.lower().replace("\u200c", " ")
-    tokens = re.findall(r"\b\w+\b", clean_text, flags=re.UNICODE)
-
-    total_words = len(tokens)
-    if total_words == 0:
+    if not text:
         return {
             "stress_score": 0.0,
             "valence": "neutral",
             "detected_cues": [],
             "cognitive_rigidity": False
         }
+
+    # Normalize Persian half-space (ZWNJ) and lower-case
+    normalized_text = text.replace("\u200c", " ").lower()
+    tokens = re.findall(r"\b\w+\b", normalized_text, flags=re.UNICODE)
+    total_words = len(tokens)
 
     positive_hits: List[str] = []
     distress_hits: List[str] = []
@@ -46,8 +46,12 @@ def analyze_text_sentiment(text: str) -> Dict[str, Any]:
             positive_hits.append(word)
         if word in DISTRESS_MARKERS:
             distress_hits.append(word)
-        if word in COGNITIVE_RIGIDITY_MARKERS:
-            rigidity_hits.append(word)
+
+    # Check cognitive rigidity with regex to catch variations like "غیرممکنه"
+    for pattern in COGNITIVE_RIGIDITY_PATTERNS:
+        matches = re.findall(pattern, normalized_text, flags=re.IGNORECASE)
+        for m in matches:
+            rigidity_hits.append(m)
 
     pos_count = len(positive_hits)
     dis_count = len(distress_hits)
@@ -56,7 +60,7 @@ def analyze_text_sentiment(text: str) -> Dict[str, Any]:
     raw_stress = (dis_count * 1.5) / (total_words + 5.0)
     stress_score = round(min(max(raw_stress * 4.0, 0.0), 1.0), 2)
 
-    # Compute Valence
+    # Determine emotional valence
     if pos_count > dis_count:
         valence_label = "positive"
     elif dis_count > pos_count:
