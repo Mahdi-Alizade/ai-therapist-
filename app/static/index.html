@@ -64,7 +64,6 @@
                         </radialGradient>
                     </defs>
 
-                    <!-- Synaptic background lines -->
                     <g opacity="0.35">
                         <line x1="120" y1="60" x2="200" y2="120" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3 3"/>
                         <line x1="280" y1="70" x2="200" y2="120" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="3 3"/>
@@ -89,23 +88,26 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with Persona Selector -->
+    <!-- Embedded Live Streaming Chat Section with Persistence -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
                 <div class="session-badge">
                     <span class="pulse-dot"></span>
-                    <span id="sessionStatusText">CBT Reflective Mode • Active</span>
+                    <span id="sessionStatusText">CBT Reflective Mode • Persistent Session</span>
                 </div>
-                <div class="persona-selector">
-                    <button type="button" class="persona-btn active" data-persona="cbt">CBT</button>
-                    <button type="button" class="persona-btn" data-persona="stoic">Stoic</button>
-                    <button type="button" class="persona-btn" data-persona="rubber_duck">Rubber Duck</button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
+                    <div class="persona-selector">
+                        <button type="button" class="persona-btn active" data-persona="cbt">CBT</button>
+                        <button type="button" class="persona-btn" data-persona="stoic">Stoic</button>
+                        <button type="button" class="persona-btn" data-persona="rubber_duck">Rubber Duck</button>
+                    </div>
                 </div>
             </div>
 
             <div class="chat-messages" id="chatBox">
-                <div class="chat-bubble model" id="initialGreeting">Hello. I am here to listen and help you unpack your thoughts without judgment. What situation or feeling has been on your mind lately?</div>
+                <!-- Messages populated dynamically -->
             </div>
 
             <form class="chat-input-bar" id="chatForm">
@@ -161,14 +163,15 @@
         <div>© 2026 MindWell AI</div>
     </footer>
 
-    <!-- Chat Streaming Logic with Persona State -->
+    <!-- Chat Streaming Logic with SQLite Session Persistence -->
     <script>
         const chatBox = document.getElementById("chatBox");
         const userInput = document.getElementById("userInput");
         const chatForm = document.getElementById("chatForm");
         const sendBtn = document.getElementById("sendBtn");
         const sessionStatusText = document.getElementById("sessionStatusText");
-        const personaBtns = document.querySelectorAll(".persona-btn");
+        const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
+        const newSessionBtn = document.getElementById("newSessionBtn");
 
         let currentPersona = "cbt";
 
@@ -178,9 +181,61 @@
             rubber_duck: "Hey there! Ready to debug what's running in your head. What's the stack trace or bottleneck causing friction today?"
         };
 
-        let sessionHistory = [
-            { role: "model", content: personaGreetings[currentPersona] }
-        ];
+        function getOrCreateSessionId() {
+            let existingId = localStorage.getItem("mindwell_session_id");
+            if (!existingId) {
+                if (window.crypto && window.crypto.randomUUID) {
+                    existingId = "sess_" + window.crypto.randomUUID();
+                } else {
+                    existingId = "sess_" + Math.random().toString(36).substring(2, 15);
+                }
+                localStorage.setItem("mindwell_session_id", existingId);
+            }
+            return existingId;
+        }
+
+        let currentSessionId = getOrCreateSessionId();
+        let sessionHistory = [];
+
+        function appendBubble(role, text) {
+            const div = document.createElement("div");
+            div.className = `chat-bubble ${role}`;
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return div;
+        }
+
+        async function restoreSessionHistory() {
+            chatBox.innerHTML = "";
+            try {
+                const res = await fetch(`/api/history/${currentSessionId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.messages && data.messages.length > 0) {
+                        sessionHistory = data.messages;
+                        for (let i = 0; i < sessionHistory.length; i++) {
+                            const msg = sessionHistory[i];
+                            appendBubble(msg.role, msg.content);
+                        }
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not fetch remote session history, initializing greeting.");
+            }
+
+            // Fallback greeting if session is fresh or empty
+            const defaultGreeting = personaGreetings[currentPersona];
+            sessionHistory = [{ role: "model", content: defaultGreeting }];
+            appendBubble("model", defaultGreeting);
+        }
+
+        newSessionBtn.addEventListener("click", () => {
+            localStorage.removeItem("mindwell_session_id");
+            currentSessionId = getOrCreateSessionId();
+            restoreSessionHistory();
+        });
 
         personaBtns.forEach((btn) => {
             btn.addEventListener("click", () => {
@@ -195,24 +250,14 @@
                     stoic: "Stoic Philosopher Mode",
                     rubber_duck: "Rubber Duck Debugger"
                 };
-                sessionStatusText.textContent = `${personaNames[currentPersona]} • Active`;
+                sessionStatusText.textContent = `${personaNames[currentPersona]} • Persistent Session`;
 
-                // Reset chat history for the fresh persona context
-                chatBox.innerHTML = "";
-                const greeting = personaGreetings[currentPersona];
-                sessionHistory = [{ role: "model", content: greeting }];
-                appendBubble("model", greeting);
+                // Fresh start on persona switch
+                localStorage.removeItem("mindwell_session_id");
+                currentSessionId = getOrCreateSessionId();
+                restoreSessionHistory();
             });
         });
-
-        function appendBubble(role, text) {
-            const div = document.createElement("div");
-            div.className = `chat-bubble ${role}`;
-            div.textContent = text;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            return div;
-        }
 
         chatForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -232,7 +277,8 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         messages: sessionHistory,
-                        persona: currentPersona
+                        persona: currentPersona,
+                        session_id: currentSessionId
                     })
                 });
 
@@ -259,6 +305,9 @@
                 userInput.focus();
             }
         });
+
+        // Initial restore when page loads
+        restoreSessionHistory();
     </script>
 </body>
 </html>
