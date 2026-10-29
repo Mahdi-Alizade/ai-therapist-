@@ -88,7 +88,7 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with Breathing & Sentiment -->
+    <!-- Embedded Live Streaming Chat Section with CBT Tools -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
@@ -97,7 +97,8 @@
                     <span id="sessionStatusText">CBT Reflective Mode</span>
                     <span class="mood-pill" id="moodIndicator">Mood: Calibrated</span>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="persona-btn" id="openThoughtRecordBtn">Thought Record</button>
                     <button type="button" class="persona-btn" id="breathingToggleBtn">Box Breathing</button>
                     <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
                     <div class="persona-selector">
@@ -132,6 +133,48 @@
             </form>
         </div>
     </section>
+
+    <!-- CBT Thought Record Modal -->
+    <div class="modal-overlay" id="thoughtModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">CBT Thought Record Worksheet</div>
+                <button type="button" class="modal-close-btn" id="closeThoughtRecordBtn">&times;</button>
+            </div>
+
+            <form class="thought-form" id="thoughtRecordForm">
+                <div class="form-group">
+                    <label>1. Triggering Situation / Event</label>
+                    <input type="text" id="trSituation" placeholder="What happened? Where were you?" required />
+                </div>
+                <div class="form-group">
+                    <label>2. Automatic Negative Thought</label>
+                    <textarea id="trAutoThought" placeholder="What exact thought passed through your mind?" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>3. Identified Cognitive Distortion</label>
+                    <select id="trDistortion" required>
+                        <option value="Catastrophizing">Catastrophizing (Expecting worst case)</option>
+                        <option value="All-or-Nothing">All-or-Nothing Thinking (Black/White)</option>
+                        <option value="Mind Reading">Mind Reading (Assuming others think negatively)</option>
+                        <option value="Fortune Telling">Fortune Telling (Predicting failure)</option>
+                        <option value="Should Statements">"Should" / "Must" Statements (Rigid demands)</option>
+                        <option value="Overgeneralization">Overgeneralization (Holding a single event as rule)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>4. Rational Cognitive Reframe</label>
+                    <textarea id="trReframe" placeholder="What is a more balanced, factual perspective?" required></textarea>
+                </div>
+                <button type="submit" class="btn-pill-cyan" id="saveThoughtBtn" style="align-self: flex-start; padding: 0.55rem 1.4rem;">Save Thought Record</button>
+            </form>
+
+            <div class="thought-log-container" id="thoughtLogList">
+                <div style="font-size: 0.84rem; color: var(--text-muted);">Session Reflections History:</div>
+                <div id="thoughtRecordsEntries"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- How MindWell Works -->
     <section class="how-it-works" id="how-it-works">
@@ -179,7 +222,7 @@
         <div>© 2026 MindWell AI</div>
     </footer>
 
-    <!-- Chat Streaming Logic with Live Sentiment, Breathing, & Persistence -->
+    <!-- Chat Streaming Logic, Sentiment, Breathing, & Thought Record Modal -->
     <script>
         const chatBox = document.getElementById("chatBox");
         const userInput = document.getElementById("userInput");
@@ -189,12 +232,25 @@
         const moodIndicator = document.getElementById("moodIndicator");
         const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
         const newSessionBtn = document.getElementById("newSessionBtn");
+
+        // Breathing Elements
         const breathingToggleBtn = document.getElementById("breathingToggleBtn");
         const stopBreathingBtn = document.getElementById("stopBreathingBtn");
         const breathingOverlay = document.getElementById("breathingOverlay");
         const breathingCircle = document.getElementById("breathingCircle");
         const breathingStepText = document.getElementById("breathingStepText");
         const breathingTimer = document.getElementById("breathingTimer");
+
+        // Thought Record Modal Elements
+        const openThoughtRecordBtn = document.getElementById("openThoughtRecordBtn");
+        const closeThoughtRecordBtn = document.getElementById("closeThoughtRecordBtn");
+        const thoughtModal = document.getElementById("thoughtModal");
+        const thoughtRecordForm = document.getElementById("thoughtRecordForm");
+        const trSituation = document.getElementById("trSituation");
+        const trAutoThought = document.getElementById("trAutoThought");
+        const trDistortion = document.getElementById("trDistortion");
+        const trReframe = document.getElementById("trReframe");
+        const thoughtRecordsEntries = document.getElementById("thoughtRecordsEntries");
 
         let currentPersona = "cbt";
         let breathingInterval = null;
@@ -241,6 +297,73 @@
             breathingOverlay.classList.remove("active");
             chatBox.style.display = "flex";
             chatForm.style.display = "flex";
+        });
+
+        // Thought Record Modal Logic
+        openThoughtRecordBtn.addEventListener("click", () => {
+            thoughtModal.classList.add("active");
+            fetchThoughtRecords();
+        });
+
+        closeThoughtRecordBtn.addEventListener("click", () => {
+            thoughtModal.classList.remove("active");
+        });
+
+        async function fetchThoughtRecords() {
+            thoughtRecordsEntries.innerHTML = "<div style='color: var(--text-muted); font-size: 0.78rem;'>Loading records...</div>";
+            try {
+                const res = await fetch(`/api/cbt/records/${currentSessionId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    thoughtRecordsEntries.innerHTML = "";
+                    if (!data.records || data.records.length === 0) {
+                        thoughtRecordsEntries.innerHTML = "<div style='color: var(--text-muted); font-size: 0.78rem;'>No thought records created for this session yet.</div>";
+                        return;
+                    }
+
+                    for (let i = 0; i < data.records.length; i++) {
+                        const rec = data.records[i];
+                        const itemDiv = document.createElement("div");
+                        itemDiv.className = "thought-log-item";
+                        itemDiv.innerHTML = `
+                            <span class="thought-log-distortion">${rec.distortion}</span>
+                            <div><strong>Situation:</strong> ${rec.situation}</div>
+                            <div><strong>Automatic Thought:</strong> "${rec.automatic_thought}"</div>
+                            <div style="color: var(--cyan-accent); margin-top: 4px;"><strong>Reframe:</strong> ${rec.rational_reframe}</div>
+                        `;
+                        thoughtRecordsEntries.appendChild(itemDiv);
+                    }
+                }
+            } catch (err) {
+                thoughtRecordsEntries.innerHTML = "<div style='color: var(--alert-text); font-size: 0.78rem;'>Could not load thought records.</div>";
+            }
+        }
+
+        thoughtRecordForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const payload = {
+                session_id: currentSessionId,
+                situation: trSituation.value.trim(),
+                automatic_thought: trAutoThought.value.trim(),
+                distortion: trDistortion.value,
+                rational_reframe: trReframe.value.trim()
+            };
+
+            try {
+                const res = await fetch("/api/cbt/records", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    trSituation.value = "";
+                    trAutoThought.value = "";
+                    trReframe.value = "";
+                    fetchThoughtRecords();
+                }
+            } catch (err) {
+                alert("Failed to save thought record. Check backend connection.");
+            }
         });
 
         const personaGreetings = {
