@@ -35,3 +35,25 @@ class SentimentAnalysisResponse(BaseModel):
     valence: Literal["positive", "distressed", "neutral"] = Field(..., description="Overall emotional direction")
     detected_cues: List[str] = Field(default_factory=list, description="Emotional or cognitive markers identified")
     cognitive_rigidity: bool = Field(..., description="Flags presence of extreme or all-or-nothing terms")
+
+
+class CreateThoughtRecordRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, description="Target session identifier")
+    situation: str = Field(..., min_length=2, max_length=1000, description="Context or trigger event")
+    automatic_thought: str = Field(..., min_length=2, max_length=1000, description="Initial negative thought")
+    distortion: str = Field(..., min_length=2, max_length=100, description="Identified cognitive distortion")
+    rational_reframe: str = Field(..., min_length=2, max_length=1000, description="Balanced perspective reframe")
+
+
+class ThoughtRecordItem(BaseModel):
+    id: int
+    situation: str
+    automatic_thought: str
+    distortion: str
+    rational_reframe: str
+    created_at: str
+
+
+class ThoughtRecordListResponse(BaseModel):
+    session_id: str
+    records: List[ThoughtRecordItem]
