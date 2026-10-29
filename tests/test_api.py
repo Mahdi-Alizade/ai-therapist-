@@ -50,3 +50,33 @@ async def test_sentiment_analysis_api_endpoint():
         assert result["valence"] == "distressed"
         assert result["stress_score"] > 0.0
         assert "anxious" in result["detected_cues"] or "overwhelmed" in result["detected_cues"]
+
+
+@pytest.mark.asyncio
+async def test_thought_record_create_and_list_flow():
+    await init_database()
+    test_session_id = "sess_thought_test_101"
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create record
+        payload = {
+            "session_id": test_session_id,
+            "situation": "Presenting code review in front of senior engineers",
+            "automatic_thought": "I will mess up and everyone will think I am incompetent",
+            "distortion": "Catastrophizing / Fortune Telling",
+            "rational_reframe": "I prepared well and questions are a normal part of collaboration, not an attack."
+        }
+        create_res = await client.post("/api/cbt/records", json=payload)
+        assert create_res.status_code == 200
+        record_data = create_res.json()
+        assert record_data["id"] > 0
+        assert record_data["situation"] == payload["situation"]
+
+        # List records for session
+        list_res = await client.get(f"/api/cbt/records/{test_session_id}")
+        assert list_res.status_code == 200
+        list_data = list_res.json()
+        assert list_data["session_id"] == test_session_id
+        assert len(list_data["records"]) >= 1
+        assert list_data["records"][0]["distortion"] == payload["distortion"]
