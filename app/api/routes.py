@@ -5,13 +5,22 @@ from app.api.schemas import (
     SessionHistoryResponse,
     ChatMessage,
     SentimentAnalysisRequest,
-    SentimentAnalysisResponse
+    SentimentAnalysisResponse,
+    CreateThoughtRecordRequest,
+    ThoughtRecordItem,
+    ThoughtRecordListResponse,
 )
 from app.services.ai_service import AIService
-from app.services.database import save_session, save_message, load_session_messages
+from app.services.database import (
+    save_session,
+    save_message,
+    load_session_messages,
+    save_thought_record,
+    load_thought_records,
+)
 from app.services.sentiment import analyze_text_sentiment
 
-router = APIRouter(prefix="/api", tags=["Chat"])
+router = APIRouter(prefix="/api", tags=["Chat & CBT"])
 ai_service = AIService()
 
 
@@ -66,10 +75,64 @@ async def analyze_sentiment_endpoint(payload: SentimentAnalysisRequest):
     Analyzes emotional valence, stress index, and cognitive rigidity of the provided text.
     """
     analysis_result = analyze_text_sentiment(payload.text)
-    
+
     return SentimentAnalysisResponse(
         stress_score=analysis_result["stress_score"],
         valence=analysis_result["valence"],
         detected_cues=analysis_result["detected_cues"],
-        cognitive_rigidity=analysis_result["cognitive_rigidity"]
+        cognitive_rigidity=analysis_result["cognitive_rigidity"],
     )
+
+
+@router.post("/cbt/records", response_model=ThoughtRecordItem)
+async def create_thought_record_endpoint(payload: CreateThoughtRecordRequest):
+    """
+    Persists a structured CBT thought record (situation, automatic thought, distortion, reframe).
+    """
+    record_id = await save_thought_record(
+        session_id=payload.session_id,
+        situation=payload.situation,
+        automatic_thought=payload.automatic_thought,
+        distortion=payload.distortion,
+        rational_reframe=payload.rational_reframe,
+    )
+
+    # Fetch recently created records to populate response object
+    records = await load_thought_records(payload.session_id)
+    matched = None
+    for r in records:
+        if r["id"] == record_id:
+            matched = r
+            break
+
+    if not matched:
+        raise HTTPException(status_code=500, detail="Failed to retrieve created thought record.")
+
+    return ThoughtRecordItem(
+        id=matched["id"],
+        situation=matched["situation"],
+        automatic_thought=matched["automatic_thought"],
+        distortion=matched["distortion"],
+        rational_reframe=matched["rational_reframe"],
+        created_at=matched["created_at"],
+    )
+
+
+@router.get("/cbt/records/{session_id}", response_model=ThoughtRecordListResponse)
+async def get_thought_records_endpoint(session_id: str):
+    """
+    Retrieves all CBT thought reflection records associated with a session.
+    """
+    raw_records = await load_thought_records(session_id)
+    items = [
+        ThoughtRecordItem(
+            id=r["id"],
+            situation=r["situation"],
+            automatic_thought=r["automatic_thought"],
+            distortion=r["distortion"],
+            rational_reframe=r["rational_reframe"],
+            created_at=r["created_at"],
+        )
+        for r in raw_records
+    ]
+    return ThoughtRecordListResponse(session_id=session_id, records=items)
