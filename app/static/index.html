@@ -88,7 +88,7 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with Sentiment Tracking -->
+    <!-- Embedded Live Streaming Chat Section with Breathing & Sentiment -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
@@ -98,6 +98,7 @@
                     <span class="mood-pill" id="moodIndicator">Mood: Calibrated</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="persona-btn" id="breathingToggleBtn">Box Breathing</button>
                     <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
                     <div class="persona-selector">
                         <button type="button" class="persona-btn active" data-persona="cbt">CBT</button>
@@ -107,6 +108,20 @@
                 </div>
             </div>
 
+            <!-- Interactive Breathing Overlay Screen -->
+            <div class="breathing-overlay" id="breathingOverlay">
+                <h3 style="color: #ffffff; font-size: 1.1rem; margin-bottom: 0.5rem;">4x4 Box Breathing Technique</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 440px;">Regulate your autonomic nervous system and lower physiological anxiety.</p>
+                <div class="breathing-circle-container">
+                    <div class="breathing-circle" id="breathingCircle">
+                        <span class="breathing-timer" id="breathingTimer">4s</span>
+                    </div>
+                </div>
+                <div class="breathing-step-text" id="breathingStepText">Inhale Gently</div>
+                <button type="button" class="btn-pill-cyan" id="stopBreathingBtn" style="margin-top: 1.5rem; padding: 0.5rem 1.4rem;">Return to Chat</button>
+            </div>
+
+            <!-- Standard Chat View -->
             <div class="chat-messages" id="chatBox">
                 <!-- Messages populated dynamically -->
             </div>
@@ -164,7 +179,7 @@
         <div>© 2026 MindWell AI</div>
     </footer>
 
-    <!-- Chat Streaming Logic with Live Sentiment & Persistence -->
+    <!-- Chat Streaming Logic with Live Sentiment, Breathing, & Persistence -->
     <script>
         const chatBox = document.getElementById("chatBox");
         const userInput = document.getElementById("userInput");
@@ -174,8 +189,59 @@
         const moodIndicator = document.getElementById("moodIndicator");
         const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
         const newSessionBtn = document.getElementById("newSessionBtn");
+        const breathingToggleBtn = document.getElementById("breathingToggleBtn");
+        const stopBreathingBtn = document.getElementById("stopBreathingBtn");
+        const breathingOverlay = document.getElementById("breathingOverlay");
+        const breathingCircle = document.getElementById("breathingCircle");
+        const breathingStepText = document.getElementById("breathingStepText");
+        const breathingTimer = document.getElementById("breathingTimer");
 
         let currentPersona = "cbt";
+        let breathingInterval = null;
+        let breathingSecondsLeft = 4;
+        let breathingPhaseIndex = 0;
+
+        const breathingPhases = [
+            { text: "Inhale Slowly (4s)", classState: "inhale" },
+            { text: "Hold Breath (4s)", classState: "hold" },
+            { text: "Exhale Gently (4s)", classState: "exhale" },
+            { text: "Rest & Hold (4s)", classState: "hold" }
+        ];
+
+        function runBreathingCycle() {
+            breathingSecondsLeft = 4;
+            const currentPhase = breathingPhases[breathingPhaseIndex];
+            breathingStepText.textContent = currentPhase.text;
+            breathingCircle.className = "breathing-circle " + currentPhase.classState;
+            breathingTimer.textContent = `${breathingSecondsLeft}s`;
+
+            if (breathingInterval) clearInterval(breathingInterval);
+
+            breathingInterval = setInterval(() => {
+                breathingSecondsLeft -= 1;
+                if (breathingSecondsLeft > 0) {
+                    breathingTimer.textContent = `${breathingSecondsLeft}s`;
+                } else {
+                    breathingPhaseIndex = (breathingPhaseIndex + 1) % breathingPhases.length;
+                    runBreathingCycle();
+                }
+            }, 1000);
+        }
+
+        breathingToggleBtn.addEventListener("click", () => {
+            chatBox.style.display = "none";
+            chatForm.style.display = "none";
+            breathingOverlay.classList.add("active");
+            breathingPhaseIndex = 0;
+            runBreathingCycle();
+        });
+
+        stopBreathingBtn.addEventListener("click", () => {
+            if (breathingInterval) clearInterval(breathingInterval);
+            breathingOverlay.classList.remove("active");
+            chatBox.style.display = "flex";
+            chatForm.style.display = "flex";
+        });
 
         const personaGreetings = {
             cbt: "Hello. I am here to listen and help you unpack your thoughts without judgment. What situation or feeling has been on your mind lately?",
@@ -304,7 +370,6 @@
             userInput.value = "";
             sendBtn.disabled = true;
 
-            // Trigger parallel sentiment analysis
             analyzeMessageSentiment(message);
 
             const responseBubble = appendBubble("model", "...");
