@@ -229,7 +229,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 540px;
+  height: 560px;
 }
 
 .chat-card-header {
@@ -265,7 +265,7 @@ body {
   50% { opacity: 0.35; }
 }
 
-/* Real-Time Sentiment & Stress Badge */
+/* Mood Badge */
 .mood-pill {
   display: inline-flex;
   align-items: center;
@@ -290,6 +290,71 @@ body {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.35);
   color: var(--stress-amber);
+}
+
+/* Breathing Mode Widget Container */
+.breathing-overlay {
+  display: none;
+  background: rgba(7, 9, 14, 0.94);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  height: 100%;
+}
+
+.breathing-overlay.active {
+  display: flex;
+}
+
+.breathing-circle-container {
+  width: 170px;
+  height: 170px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.breathing-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.35) 0%, rgba(56, 189, 248, 0.1) 70%);
+  border: 2px solid var(--cyan-accent);
+  box-shadow: 0 0 25px var(--cyan-glow);
+  transition: transform 4s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-circle.inhale {
+  transform: scale(1.4);
+}
+
+.breathing-circle.hold {
+  transform: scale(1.4);
+}
+
+.breathing-circle.exhale {
+  transform: scale(0.85);
+}
+
+.breathing-step-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.breathing-timer {
+  font-size: 0.9rem;
+  color: var(--cyan-accent);
+  font-weight: 600;
+  margin-top: 6px;
 }
 
 /* Persona Selector Pill Buttons */
