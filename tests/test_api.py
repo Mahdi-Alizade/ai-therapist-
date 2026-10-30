@@ -1,7 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 from app.main import app
-from app.services.database import init_database, save_session, save_message
+from app.services.database import init_database, save_session, save_message, save_thought_record
 
 
 @pytest.mark.asyncio
@@ -59,7 +59,6 @@ async def test_thought_record_create_and_list_flow():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Create record
         payload = {
             "session_id": test_session_id,
             "situation": "Presenting code review in front of senior engineers",
@@ -73,10 +72,35 @@ async def test_thought_record_create_and_list_flow():
         assert record_data["id"] > 0
         assert record_data["situation"] == payload["situation"]
 
-        # List records for session
         list_res = await client.get(f"/api/cbt/records/{test_session_id}")
         assert list_res.status_code == 200
         list_data = list_res.json()
         assert list_data["session_id"] == test_session_id
         assert len(list_data["records"]) >= 1
         assert list_data["records"][0]["distortion"] == payload["distortion"]
+
+
+@pytest.mark.asyncio
+async def test_session_summary_export_flow():
+    await init_database()
+    export_session_id = "sess_export_test_202"
+    await save_session(export_session_id, "stoic")
+    await save_message(export_session_id, "user", "I am dealing with heavy work stress.")
+    await save_message(export_session_id, "model", "Focus on what you can control.")
+    await save_thought_record(
+        export_session_id,
+        "Production server alert",
+        "The system is ruined",
+        "Catastrophizing",
+        "We have rollbacks and alerts in place."
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        export_res = await client.get(f"/api/session/{export_session_id}/export")
+        assert export_res.status_code == 200
+        assert "text/plain" in export_res.headers.get("content-type", "")
+        export_text = export_res.text
+        assert export_session_id in export_text
+        assert "Production server alert" in export_text
+        assert "Focus on what you can control." in export_text
