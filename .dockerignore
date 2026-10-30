@@ -1,0 +1,32 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Byte-compiled & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment Variables & Secrets
+.env
+.env.*
+secrets.json
+
+# Local Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Git & Documentation
+.git/
+.gitignore
+.github/
+README.md
+
+# Operating System Files
+.DS_Store
+Thumbs.db
