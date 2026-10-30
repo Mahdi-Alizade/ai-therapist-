@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse
 from app.api.schemas import (
     ChatRequest,
     SessionHistoryResponse,
@@ -97,7 +97,6 @@ async def create_thought_record_endpoint(payload: CreateThoughtRecordRequest):
         rational_reframe=payload.rational_reframe,
     )
 
-    # Fetch recently created records to populate response object
     records = await load_thought_records(payload.session_id)
     matched = None
     for r in records:
@@ -136,3 +135,50 @@ async def get_thought_records_endpoint(session_id: str):
         for r in raw_records
     ]
     return ThoughtRecordListResponse(session_id=session_id, records=items)
+
+
+@router.get("/session/{session_id}/export", response_class=PlainTextResponse)
+async def export_session_summary_endpoint(session_id: str):
+    """
+    Generates a structured, exportable text summary of the reflective chat session and thought worksheets.
+    """
+    messages = await load_session_messages(session_id)
+    thought_records = await load_thought_records(session_id)
+
+    lines = []
+    lines.append("==================================================")
+    lines.append("MindWell AI - Structured Reflection Session Report")
+    lines.append(f"Session ID: {session_id}")
+    lines.append("==================================================")
+    lines.append("")
+    lines.append("--- [ 1. CBT Thought Records & Cognitive Reframes ] ---")
+    if not thought_records:
+        lines.append("No structured worksheets recorded during this session.")
+    else:
+        for idx, rec in enumerate(thought_records, 1):
+            lines.append(f"Worksheet #{idx}:")
+            lines.append(f"  Triggering Situation: {rec['situation']}")
+            lines.append(f"  Automatic Thought:    {rec['automatic_thought']}")
+            lines.append(f"  Distortion Category:  {rec['distortion']}")
+            lines.append(f"  Balanced Reframe:     {rec['rational_reframe']}")
+            lines.append(f"  Timestamp:            {rec['created_at']}")
+            lines.append("")
+
+    lines.append("--- [ 2. Conversational Dialogue Log ] ---")
+    if not messages:
+        lines.append("No conversation messages logged in this session.")
+    else:
+        for msg in messages:
+            speaker_label = "USER" if msg["role"] == "user" else "ASSISTANT"
+            lines.append(f"[{speaker_label}]: {msg['content']}")
+            lines.append("")
+
+    lines.append("==================================================")
+    lines.append("Notice: MindWell is an automated cognitive aid, not medical advice.")
+    lines.append("==================================================")
+
+    report_content = "\n".join(lines)
+    return PlainTextResponse(
+        content=report_content,
+        headers={"Content-Disposition": f'attachment; filename="mindwell_session_{session_id}.txt"'}
+    )
