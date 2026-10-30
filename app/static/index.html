@@ -88,7 +88,7 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with CBT Tools -->
+    <!-- Embedded Live Streaming Chat Section with CBT Tools & Export -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
@@ -98,6 +98,7 @@
                     <span class="mood-pill" id="moodIndicator">Mood: Calibrated</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="persona-btn" id="exportSessionBtn" title="Download text report of this session">Export</button>
                     <button type="button" class="persona-btn" id="openThoughtRecordBtn">Thought Record</button>
                     <button type="button" class="persona-btn" id="breathingToggleBtn">Box Breathing</button>
                     <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
@@ -107,6 +108,12 @@
                         <button type="button" class="persona-btn" data-persona="rubber_duck">Rubber Duck</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Real-Time Stress Dynamics Mini Canvas -->
+            <div class="analytics-chart-bar">
+                <span>Session Stress Dynamics:</span>
+                <canvas id="stressCanvas" class="stress-canvas" width="140" height="24"></canvas>
             </div>
 
             <!-- Interactive Breathing Overlay Screen -->
@@ -222,7 +229,7 @@
         <div>© 2026 MindWell AI</div>
     </footer>
 
-    <!-- Chat Streaming Logic, Sentiment, Breathing, & Thought Record Modal -->
+    <!-- Chat Streaming Logic, Canvas Chart, Breathing, & Worksheets -->
     <script>
         const chatBox = document.getElementById("chatBox");
         const userInput = document.getElementById("userInput");
@@ -232,6 +239,32 @@
         const moodIndicator = document.getElementById("moodIndicator");
         const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
         const newSessionBtn = document.getElementById("newSessionBtn");
+        const exportSessionBtn = document.getElementById("exportSessionBtn");
+
+        // Canvas Analytics
+        const stressCanvas = document.getElementById("stressCanvas");
+        const canvasCtx = stressCanvas.getContext("2d");
+        const stressScores = [0.2];
+
+        function drawStressChart() {
+            canvasCtx.clearRect(0, 0, stressCanvas.width, stressCanvas.height);
+            canvasCtx.strokeStyle = "#38bdf8";
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+
+            const step = stressCanvas.width / Math.max(stressScores.length - 1, 1);
+            for (let i = 0; i < stressScores.length; i++) {
+                const x = i * step;
+                const score = stressScores[i];
+                const y = stressCanvas.height - (score * (stressCanvas.height - 4)) - 2;
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+            }
+            canvasCtx.stroke();
+        }
 
         // Breathing Elements
         const breathingToggleBtn = document.getElementById("breathingToggleBtn");
@@ -366,6 +399,10 @@
             }
         });
 
+        exportSessionBtn.addEventListener("click", () => {
+            window.open(`/api/session/${currentSessionId}/export`, "_blank");
+        });
+
         const personaGreetings = {
             cbt: "Hello. I am here to listen and help you unpack your thoughts without judgment. What situation or feeling has been on your mind lately?",
             stoic: "Welcome. Take a breath and reflect: what circumstance is troubling you, and which parts of it remain within your control?",
@@ -410,6 +447,11 @@
             } else {
                 moodIndicator.textContent = `Neutral Focus`;
             }
+
+            // Update real-time canvas chart
+            stressScores.push(sentimentData.stress_score);
+            if (stressScores.length > 15) stressScores.shift();
+            drawStressChart();
         }
 
         async function analyzeMessageSentiment(text) {
@@ -440,6 +482,7 @@
                             const msg = sessionHistory[i];
                             appendBubble(msg.role, msg.content);
                         }
+                        drawStressChart();
                         return;
                     }
                 }
@@ -450,6 +493,7 @@
             const defaultGreeting = personaGreetings[currentPersona];
             sessionHistory = [{ role: "model", content: defaultGreeting }];
             appendBubble("model", defaultGreeting);
+            drawStressChart();
         }
 
         newSessionBtn.addEventListener("click", () => {
@@ -457,6 +501,8 @@
             currentSessionId = getOrCreateSessionId();
             moodIndicator.className = "mood-pill";
             moodIndicator.textContent = "Mood: Calibrated";
+            stressScores.length = 0;
+            stressScores.push(0.2);
             restoreSessionHistory();
         });
 
@@ -479,6 +525,8 @@
                 currentSessionId = getOrCreateSessionId();
                 moodIndicator.className = "mood-pill";
                 moodIndicator.textContent = "Mood: Calibrated";
+                stressScores.length = 0;
+                stressScores.push(0.2);
                 restoreSessionHistory();
             });
         });
