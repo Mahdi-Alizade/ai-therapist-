@@ -229,7 +229,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 560px;
+  height: 590px;
 }
 
 .chat-card-header {
@@ -290,6 +290,23 @@ body {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.35);
   color: var(--stress-amber);
+}
+
+/* Mini Stress Canvas Chart Header Bar */
+.analytics-chart-bar {
+  background: rgba(5, 8, 15, 0.5);
+  padding: 6px 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.stress-canvas {
+  width: 140px;
+  height: 24px;
 }
 
 /* Breathing Overlay */
