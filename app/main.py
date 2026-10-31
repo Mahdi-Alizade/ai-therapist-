@@ -1,8 +1,8 @@
+from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from app.api.routes import router as api_router
 from app.services.database import init_database, get_connection
@@ -25,19 +25,17 @@ app = FastAPI(
 # Mount static asset directory
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Configure HTML template engine
-templates = Jinja2Templates(directory="app/static")
-
 # Register API routes
 app.include_router(api_router)
 
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_home_interface(request: Request):
+@app.get("/", response_class=FileResponse)
+async def serve_home_interface():
     """
-    Renders the single-page application interface.
+    Renders the single-page application interface directly.
     """
-    return templates.TemplateResponse("index.html", {"request": request})
+    html_path = Path("app") / "static" / "index.html"
+    return FileResponse(html_path, media_type="text/html")
 
 
 @app.get("/health")
