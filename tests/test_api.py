@@ -104,3 +104,30 @@ async def test_session_summary_export_flow():
         assert export_session_id in export_text
         assert "Production server alert" in export_text
         assert "Focus on what you can control." in export_text
+
+
+@pytest.mark.asyncio
+async def test_session_markdown_export_flow():
+    await init_database()
+    md_session_id = "sess_md_test_303"
+    await save_session(md_session_id, "cbt")
+    await save_message(md_session_id, "user", "Need help reframing a project deadline.")
+    await save_message(md_session_id, "model", "Break it down step-by-step.")
+    await save_thought_record(
+        md_session_id,
+        "Missed estimation deadline",
+        "I am a failure",
+        "All-or-Nothing",
+        "Missing an estimate is a signal to recalibrate, not a failure."
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        md_res = await client.get(f"/api/session/{md_session_id}/export/markdown")
+        assert md_res.status_code == 200
+        assert "text/markdown" in md_res.headers.get("content-type", "")
+        content = md_res.text
+        assert f"# MindWell AI - Session Report: `{md_session_id}`" in content
+        assert "All-or-Nothing" in content
+        assert "| Missed estimation deadline |" in content
+        assert "Need help reframing a project deadline." in content
