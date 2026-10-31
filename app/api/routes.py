@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse, PlainTextResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse, Response
 from app.api.schemas import (
     ChatRequest,
     SessionHistoryResponse,
@@ -26,15 +26,10 @@ ai_service = AIService()
 
 @router.post("/chat/stream")
 async def chat_stream_endpoint(payload: ChatRequest):
-    """
-    Accepts conversation history and persona choice, streaming generated response chunks.
-    Persists messages to SQLite if session_id is provided.
-    """
     message_dicts = [{"role": msg.role, "content": msg.content} for msg in payload.messages]
     persona_choice = payload.persona or "cbt"
     session_id = payload.session_id
 
-    # Persist the latest user message if session tracking is active
     if session_id:
         await save_session(session_id, persona_choice)
         latest_user_text = payload.messages[-1].content
@@ -46,7 +41,6 @@ async def chat_stream_endpoint(payload: ChatRequest):
             collected_response += chunk
             yield chunk
 
-        # Persist full assistant response at the completion of stream
         if session_id and collected_response:
             await save_message(session_id, "model", collected_response)
 
@@ -55,9 +49,6 @@ async def chat_stream_endpoint(payload: ChatRequest):
 
 @router.get("/history/{session_id}", response_model=SessionHistoryResponse)
 async def get_chat_history_endpoint(session_id: str):
-    """
-    Retrieves stored message history for a given session.
-    """
     raw_messages = await load_session_messages(session_id)
     if not raw_messages:
         return SessionHistoryResponse(session_id=session_id, messages=[])
@@ -71,9 +62,6 @@ async def get_chat_history_endpoint(session_id: str):
 
 @router.post("/sentiment/analyze", response_model=SentimentAnalysisResponse)
 async def analyze_sentiment_endpoint(payload: SentimentAnalysisRequest):
-    """
-    Analyzes emotional valence, stress index, and cognitive rigidity of the provided text.
-    """
     analysis_result = analyze_text_sentiment(payload.text)
 
     return SentimentAnalysisResponse(
@@ -86,9 +74,6 @@ async def analyze_sentiment_endpoint(payload: SentimentAnalysisRequest):
 
 @router.post("/cbt/records", response_model=ThoughtRecordItem)
 async def create_thought_record_endpoint(payload: CreateThoughtRecordRequest):
-    """
-    Persists a structured CBT thought record (situation, automatic thought, distortion, reframe).
-    """
     record_id = await save_thought_record(
         session_id=payload.session_id,
         situation=payload.situation,
@@ -119,9 +104,6 @@ async def create_thought_record_endpoint(payload: CreateThoughtRecordRequest):
 
 @router.get("/cbt/records/{session_id}", response_model=ThoughtRecordListResponse)
 async def get_thought_records_endpoint(session_id: str):
-    """
-    Retrieves all CBT thought reflection records associated with a session.
-    """
     raw_records = await load_thought_records(session_id)
     items = [
         ThoughtRecordItem(
@@ -139,9 +121,6 @@ async def get_thought_records_endpoint(session_id: str):
 
 @router.get("/session/{session_id}/export", response_class=PlainTextResponse)
 async def export_session_summary_endpoint(session_id: str):
-    """
-    Generates a structured, exportable text summary of the reflective chat session and thought worksheets.
-    """
     messages = await load_session_messages(session_id)
     thought_records = await load_thought_records(session_id)
 
@@ -181,4 +160,52 @@ async def export_session_summary_endpoint(session_id: str):
     return PlainTextResponse(
         content=report_content,
         headers={"Content-Disposition": f'attachment; filename="mindwell_session_{session_id}.txt"'}
+    )
+
+
+@router.get("/session/{session_id}/export/markdown", response_class=Response)
+async def export_session_markdown_endpoint(session_id: str):
+    messages = await load_session_messages(session_id)
+    thought_records = await load_thought_records(session_id)
+
+    md_lines = []
+    md_lines.append(f"# MindWell AI - Session Report: `{session_id}`")
+    md_lines.append("")
+    md_lines.append("> **Disclaimer**: MindWell AI is a reflective companion and not a licensed clinical service.")
+    md_lines.append("")
+    md_lines.append("## 1. CBT Thought Reflection Worksheets")
+    md_lines.append("")
+
+    if not thought_records:
+        md_lines.append("*No thought worksheets recorded for this session.*")
+        md_lines.append("")
+    else:
+        md_lines.append("| # | Triggering Situation | Automatic Thought | Distortion | Rational Reframe |")
+        md_lines.append("|---|----------------------|-------------------|------------|------------------|")
+        for idx, item in enumerate(thought_records, 1):
+            sit = item["situation"].replace("|", "/")
+            at = item["automatic_thought"].replace("|", "/")
+            dist = item["distortion"].replace("|", "/")
+            ref = item["rational_reframe"].replace("|", "/")
+            md_lines.append(f"| {idx} | {sit} | {at} | **{dist}** | {ref} |")
+        md_lines.append("")
+
+    md_lines.append("## 2. Conversational Dialogue History")
+    md_lines.append("")
+
+    if not messages:
+        md_lines.append("*No messages recorded.*")
+        md_lines.append("")
+    else:
+        for m in messages:
+            role_title = "**User**" if m["role"] == "user" else "**MindWell Companion**"
+            md_lines.append(f"### {role_title}")
+            md_lines.append(f"{m['content']}")
+            md_lines.append("")
+
+    md_content = "\n".join(md_lines)
+    return Response(
+        content=md_content,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="mindwell_session_{session_id}.md"'}
     )
