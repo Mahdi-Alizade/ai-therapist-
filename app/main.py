@@ -1,43 +1,66 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from app.api.routes import router as chat_router
-from app.services.database import init_database
+from fastapi.templating import Jinja2Templates
+
+from app.api.routes import router as api_router
+from app.services.database import init_database, get_connection
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize SQLite database and tables upon server startup
+    # Initialize SQLite database and tables upon startup
     await init_database()
     yield
 
 
 app = FastAPI(
-    title="CalmSphere AI Assistant",
-    description="An empathetic active-listening AI assistant experiment with built-in crisis guardrails.",
-    version="0.2.0",
-    lifespan=lifespan
+    title="MindWell AI - Therapeutic Assistant",
+    description="A multi-persona cognitive companion built with FastAPI and Google GenAI",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(chat_router)
+# Mount static asset directory
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+# Configure HTML template engine
+templates = Jinja2Templates(directory="app/static")
 
-@app.get("/", response_class=FileResponse)
-async def serve_index():
-    return FileResponse("app/static/index.html")
+# Register API routes
+app.include_router(api_router)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_home_interface(request: Request):
+    """
+    Renders the single-page application interface.
+    """
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "ai-therapist-api"}
+    """
+    Performs application and deep database health verification.
+    """
+    database_status = "connected"
+    try:
+        conn = await get_connection()
+        try:
+            cursor = await conn.execute("SELECT 1;")
+            await cursor.fetchone()
+        finally:
+            await conn.close()
+    except Exception:
+        database_status = "unavailable"
+
+    response_payload = {
+        "status": "healthy" if database_status == "connected" else "degraded",
+        "service": "ai-therapist-api",
+        "database": database_status,
+    }
+
+    status_code = 200 if database_status == "connected" else 503
+    return JSONResponse(content=response_payload, status_code=status_code)
