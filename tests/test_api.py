@@ -10,7 +10,10 @@ async def test_health_endpoint():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/health")
         assert response.status_code == 200
-        assert response.json() == {"status": "healthy", "service": "ai-therapist-api"}
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["service"] == "ai-therapist-api"
+        assert data["database"] == "connected"
 
 
 @pytest.mark.asyncio
