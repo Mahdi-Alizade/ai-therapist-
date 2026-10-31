@@ -1,6 +1,6 @@
 import os
 import aiosqlite
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Any
 
 DATABASE_FILENAME = "therapist_sessions.db"
@@ -157,3 +157,39 @@ async def load_thought_records(session_id: str) -> List[Dict[str, Any]]:
     finally:
         await conn.close()
     return records
+
+
+async def cleanup_expired_sessions(retention_days: int = 30) -> int:
+    """
+    Deletes sessions and their related messages and thought records older than retention_days.
+    Returns the count of purged sessions.
+    """
+    conn = await get_connection()
+    purged_count = 0
+    try:
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        cutoff_str = cutoff_date.isoformat()
+
+        # Identify sessions past the cutoff
+        select_expired_query = """
+        SELECT session_id FROM chat_sessions WHERE created_at < ?;
+        """
+        async with conn.execute(select_expired_query, (cutoff_str,)) as cursor:
+            expired_rows = await cursor.fetchall()
+            expired_ids = [row["session_id"] for row in expired_rows]
+
+        if not expired_ids:
+            return 0
+
+        # Purge child records and sessions in a single transaction
+        for sid in expired_ids:
+            await conn.execute("DELETE FROM chat_messages WHERE session_id = ?;", (sid,))
+            await conn.execute("DELETE FROM thought_records WHERE session_id = ?;", (sid,))
+            await conn.execute("DELETE FROM chat_sessions WHERE session_id = ?;", (sid,))
+
+        await conn.commit()
+        purged_count = len(expired_ids)
+    finally:
+        await conn.close()
+
+    return purged_count
