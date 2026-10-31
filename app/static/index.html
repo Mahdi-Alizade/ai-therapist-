@@ -88,7 +88,7 @@
         </div>
     </section>
 
-    <!-- Embedded Live Streaming Chat Section with CBT Tools & Export -->
+    <!-- Embedded Live Streaming Chat Section with Export Options -->
     <section class="chat-section" id="chat-console">
         <div class="chat-card">
             <div class="chat-card-header">
@@ -98,7 +98,8 @@
                     <span class="mood-pill" id="moodIndicator">Mood: Calibrated</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <button type="button" class="persona-btn" id="exportSessionBtn" title="Download text report of this session">Export</button>
+                    <button type="button" class="persona-btn" id="exportSessionBtn" title="Download plain text report">Export (TXT)</button>
+                    <button type="button" class="persona-btn" id="exportMarkdownBtn" title="Download Markdown formatted report">Export (MD)</button>
                     <button type="button" class="persona-btn" id="openThoughtRecordBtn">Thought Record</button>
                     <button type="button" class="persona-btn" id="breathingToggleBtn">Box Breathing</button>
                     <button type="button" class="persona-btn" id="newSessionBtn" title="Start a fresh conversation">New Session</button>
@@ -240,6 +241,7 @@
         const personaBtns = document.querySelectorAll(".persona-btn[data-persona]");
         const newSessionBtn = document.getElementById("newSessionBtn");
         const exportSessionBtn = document.getElementById("exportSessionBtn");
+        const exportMarkdownBtn = document.getElementById("exportMarkdownBtn");
 
         // Canvas Analytics
         const stressCanvas = document.getElementById("stressCanvas");
@@ -403,6 +405,10 @@
             window.open(`/api/session/${currentSessionId}/export`, "_blank");
         });
 
+        exportMarkdownBtn.addEventListener("click", () => {
+            window.open(`/api/session/${currentSessionId}/export/markdown`, "_blank");
+        });
+
         const personaGreetings = {
             cbt: "Hello. I am here to listen and help you unpack your thoughts without judgment. What situation or feeling has been on your mind lately?",
             stoic: "Welcome. Take a breath and reflect: what circumstance is troubling you, and which parts of it remain within your control?",
@@ -448,7 +454,6 @@
                 moodIndicator.textContent = `Neutral Focus`;
             }
 
-            // Update real-time canvas chart
             stressScores.push(sentimentData.stress_score);
             if (stressScores.length > 15) stressScores.shift();
             drawStressChart();
