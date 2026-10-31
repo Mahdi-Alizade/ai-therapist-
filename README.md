@@ -1,60 +1,60 @@
-# MindWell AI (CalmSphere) 🧠✨
+# MindWell AI - Cognitive Reflective Assistant
 
-A robust, reflective AI therapeutic assistant built with **FastAPI**, **Google GenAI SDK**, **SQLite**, and vanilla web primitives. Engineered around Cognitive Behavioral Therapy (CBT) paradigms, multi-persona perspective exploration, proactive crisis guardrails, and real-time client sentiment analytics.
+A resilient, production-ready AI cognitive companion and therapy simulator built with **FastAPI**, **Google GenAI**, and **Async SQLite**. The system implements structured Cognitive Behavioral Therapy (CBT) thought reframing, emotional distress estimation, real-time streaming, and session persistence.
 
 ---
 
-## 🏛️ System Architecture
+## Architecture Overview
 
 ```text
-[ Client Web UI (Vanilla JS / CSS) ]
-        │ (HTTP Stream / REST)
-        ▼
-[ FastAPI Routing Layer (Pydantic v2 Validation) ]
-   ├── POST /api/chat/stream
-   ├── GET  /api/history/{session_id}
-   └── POST /api/sentiment/analyze
-        │
-        ├─────────────────────────────┬─────────────────────────────┐
-        ▼                             ▼                             ▼
-[ Crisis Guardrails ]      [ Emotion & Sentiment ]       [ SQLite Async Store ]
-(Multi-language Regex)     (Valence & Stress Index)      (Sessions & Chat Log)
-        │
-        ▼ (Grounded Prompt Injection)
-[ Multi-Persona System ]
-  ├── CBT Reflective Mode (Socratic Questioning & Grounding)
-  ├── Stoic Philosopher Mode (Dichotomy of Control)
-  └── Rubber Duck Debugger (Burnout & Thought Unpacking)
-        │
-        ▼
-[ Google Gemini GenAI Engine (Streaming Output) ]
-🚀 Key Features
-Cognitive Behavioral Therapy (CBT) Foundations: Employs Socratic dialogue, automated thought unpacking, cognitive distortion identification, and emotional validation.
+       [ Web Client / HTML5 Single-Page App ]
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+  [ Chat Stream ]  [ Worksheets ]  [ Analytics ]
+        │                │                │
+        └────────────────┼────────────────┘
+                         ▼
+             [ FastAPI Routing Layer ]
+                         │
+     ┌───────────────────┼───────────────────┐
+     ▼                   ▼                   ▼
+[ AIService ]    [ SentimentEngine ]   [ aiosqlite Storage ]
+(Google GenAI)   (Stress Analytics)   (chat_sessions, records)
+Core Capabilities
+Multi-Persona Behavioral Modes:
 
-Multi-Persona Perspective Switching: Seamless dynamic switching between CBT, Stoic, and Rubber Duck Debugger modes with adapted conversational contexts.
+CBT Specialist (cbt): Employs Socratic questioning, identifying cognitive distortions and automatic negative thoughts.
 
-Proactive Crisis Safety Guardrails: Strict multi-lingual keyword and semantic intent monitoring (English & Persian) to intercept acute distress and provide emergency helpline referrals immediately.
+Stoic Philosopher (stoic): Guides users through the Dichotomy of Control and rational perspective shifts.
 
-Real-Time Sentiment & Stress Tracking: Algorithmic evaluation of emotional valence and cognitive rigidity markers to present real-time user stress levels.
+Rubber Duck Debugger (rubber_duck): Tailored for developers tackling cognitive exhaustion, imposter syndrome, and mental blockers.
 
-Interactive 4x4 Box Breathing Widget: Integrated visual breathing guide to support autonomic down-regulation during heightened anxiety.
+CBT Thought Record Worksheets:
 
-Persistent SQLite Session Storage: Async database layer (aiosqlite) tracking session histories with local device continuity.
+Interactive 4-step modal tracking: Situation, Automatic Thought, Distortion Category (e.g., Catastrophizing, All-or-Nothing), and Balanced Reframe.
 
-Automated CI/CD Test Pipeline: 17+ comprehensive unit and integration tests passing on Python 3.13 via GitHub Actions.
+Persistent storage in SQLite with instant retrieval across sessions.
 
-🛠️ Tech Stack
-Backend: Python 3.13, FastAPI, Uvicorn, Pydantic v2
+Emotional Analytics & Somatic Grounding:
 
-Storage: Async SQLite (aiosqlite)
+Real-time client-side HTML5 canvas tracking emotional valence and stress percentages.
 
-AI Model: Google GenAI SDK (Gemini)
+Embedded 4x4 Box Breathing visualizer for physiological vagus nerve regulation.
 
-Testing: Pytest, Pytest-Asyncio, HTTPX
+Multi-Format Session Export:
 
-Frontend: Clean Vanilla HTML5, CSS3 Glassmorphism, Modern Async JavaScript
+Plain text formatted session records (/api/session/{id}/export).
 
-💻 Local Setup & Execution
+Clean, structured Markdown exports (/api/session/{id}/export/markdown) containing formatted tables of CBT worksheets and dialogue logs.
+
+Operational Health & Retention:
+
+Deep database connectivity probe integrated into /health.
+
+Automated retention cleanup policy (cleanup_expired_sessions) to prune historical data.
+
+Installation & Local Development
 1. Virtual Environment Setup
 PowerShell
 python -m venv venv
@@ -64,17 +64,25 @@ pip install -r requirements.txt
 Create a .env file in the project root:
 
 Code snippet
-AI_API_KEY=your_actual_google_genai_api_key_here
-AI_MODEL_NAME=gemini-2.5-flash
-3. Run the Development Server
-PowerShell
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-Web Interface: http://127.0.0.1:8000
-
-Interactive API Swagger Docs: http://127.0.0.1:8000/docs
-
-🧪 Automated Testing
+AI_API_KEY="your_actual_gemini_api_key_here"
+AI_MODEL_NAME="gemini-2.5-flash"
+3. Run Automated Tests
 PowerShell
 pytest -v
-📜 License
-This project is open-source under the MIT License.
+4. Start the Application
+PowerShell
+uvicorn app.main:app --reload --port 8000
+Open http://localhost:8000 in your browser.
+
+Containerized Deployment (Docker)
+Multi-Stage Docker Build
+Run the production container using the non-root runtime image:
+
+PowerShell
+docker compose up -d --build
+Check running container health status:
+
+PowerShell
+docker ps --filter "name=mindwell_therapist_service"
+Disclaimer
+MindWell AI is an automated reflective cognitive tool, not a clinical healthcare service. In crisis situations, users should contact certified crisis helplines.
